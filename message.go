@@ -10,17 +10,26 @@ import (
 	"github.com/ugorji/go/codec"
 )
 
-type DecodeFunc func([]byte, interface{}) error
+type Decoder interface {
+	Decode([]byte, interface{}) error
+}
+
+type DecoderFunc func([]byte, interface{}) error
+
+func (f DecoderFunc) Decode(b []byte, v interface{}) error {
+	return f(b, v)
+}
 
 var (
 	EOF       = errors.New("lmq: message reached EOF")
 	ErrDecode = errors.New("lmq: message decode error")
 
-	decoderMap = map[string]DecodeFunc{}
+	DefaultDecoder = new(duplicator)
+	decoderMap     = make(map[string]Decoder)
 )
 
-func RegisterDecoder(contentType string, f DecodeFunc) {
-	decoderMap[contentType] = f
+func RegisterDecoder(contentType string, d Decoder) {
+	decoderMap[contentType] = d
 }
 
 type Message struct {
@@ -80,10 +89,10 @@ func (m *Message) Decode(v interface{}) error {
 type compoundMessage [][]interface{}
 
 func decodeBody(ct string, b []byte, v interface{}) error {
-	if f, ok := decoderMap[ct]; ok {
-		return f(b, v)
+	if d, ok := decoderMap[ct]; ok {
+		return d.Decode(b, v)
 	}
-	return rawDecoder(b, v)
+	return DefaultDecoder.Decode(b, v)
 }
 
 func msgpackDecoder(b []byte, v interface{}) error {
@@ -94,21 +103,22 @@ func jsonDecoder(b []byte, v interface{}) error {
 	return json.Unmarshal(b, v)
 }
 
-func rawDecoder(b []byte, v interface{}) error {
+type duplicator struct {
+	preferStr bool
+}
+
+func (d *duplicator) Decode(b []byte, v interface{}) error {
 	switch out := v.(type) {
 	case []byte:
 		copy(out, b)
 	case *[]byte:
-		if len(b) <= cap(*out) {
-			n := copy((*out)[:cap(*out)], b)
-			*out = (*out)[:n]
-		} else {
-			tmp := make([]byte, len(b))
-			copy(tmp, b)
-			*out = tmp
-		}
-	case *interface{}:
 		*out = b
+	case *interface{}:
+		if d.preferStr {
+			*out = string(b)
+		} else {
+			*out = b
+		}
 	default:
 		return ErrDecode
 	}
@@ -119,6 +129,7 @@ var mh = &codec.MsgpackHandle{RawToString: true, WriteExt: true}
 
 func init() {
 	mh.MapType = reflect.TypeOf(map[string]interface{}(nil))
-	RegisterDecoder("application/x-msgpack", msgpackDecoder)
-	RegisterDecoder("application/json", jsonDecoder)
+	RegisterDecoder("application/x-msgpack", DecoderFunc(msgpackDecoder))
+	RegisterDecoder("application/json", DecoderFunc(jsonDecoder))
+	RegisterDecoder("text/plain", &duplicator{preferStr: true})
 }

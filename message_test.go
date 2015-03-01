@@ -39,20 +39,32 @@ func TestDecodeJSON(t *testing.T) {
 	assert.Equal(t, 1, v.ID)
 }
 
-func TestDecodeRaw(t *testing.T) {
+func TestDecodeText(t *testing.T) {
 	m := &Message{MessageType: "normal", ContentType: "text/plain", Body: []byte("hello")}
+	var v interface{}
+	must(t, m.Decode(&v))
+	assert.Equal(t, "hello", v)
+}
+
+func TestDecodeRaw(t *testing.T) {
+	m := &Message{MessageType: "normal", ContentType: "application/octet-stream", Body: []byte("hello")}
 	var b []byte
 	must(t, m.Decode(&b))
 	assert.Equal(t, []byte("hello"), b)
 
-	m = &Message{MessageType: "normal", ContentType: "text/plain", Body: []byte("world")}
+	m = &Message{MessageType: "normal", ContentType: "application/octet-stream", Body: []byte("world")}
 	b = b[:2]
 	must(t, m.Decode(b))
 	assert.Equal(t, []byte("wo"), b)
 
-	m = &Message{MessageType: "normal", ContentType: "text/plain", Body: []byte("world")}
+	m = &Message{MessageType: "normal", ContentType: "application/octet-stream", Body: []byte("world")}
 	must(t, m.Decode(&b))
 	assert.Equal(t, []byte("world"), b)
+
+	m = &Message{MessageType: "normal", ContentType: "application/octet-stream", Body: []byte("interface")}
+	var v interface{}
+	must(t, m.Decode(&v))
+	assert.Equal(t, []byte("interface"), v)
 }
 
 func TestCompound(t *testing.T) {
