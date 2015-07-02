@@ -1,6 +1,9 @@
 package lmq
 
 import (
+	"io/ioutil"
+	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,6 +13,32 @@ func must(t *testing.T, err error) {
 	if err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestNewMessage(t *testing.T) {
+	resp := &http.Response{
+		Header: make(http.Header),
+		Body:   ioutil.NopCloser(strings.NewReader("body")),
+	}
+	resp.Header.Set("X-Lmq-Message-Id", "abc")
+	resp.Header.Set("X-Lmq-Queue-Name", "q")
+	resp.Header.Set("X-Lmq-Message-Type", "normal")
+	resp.Header.Set("Content-Type", "text/plain")
+
+	m, err := newMessage(resp)
+	assert.Nil(t, err)
+	assert.Equal(t, "abc", m.ID)
+	assert.Equal(t, "q", m.Queue)
+	assert.Equal(t, "normal", m.MessageType)
+	assert.Equal(t, -1, m.Retry)
+	assert.Equal(t, "text/plain", m.ContentType)
+	assert.Equal(t, []byte("body"), m.Body)
+
+	resp.Body = ioutil.NopCloser(strings.NewReader("body"))
+	resp.Header.Set("X-Lmq-Retry-Remaining", "1")
+	m, err = newMessage(resp)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, m.Retry)
 }
 
 func TestDecodeMsgpack(t *testing.T) {

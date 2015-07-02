@@ -45,6 +45,7 @@ func TestSimple(t *testing.T) {
 	assert.Equal(t, queue, m.Queue)
 	assert.Equal(t, "text/plain", m.ContentType)
 	assert.Equal(t, "normal", m.MessageType)
+	assert.Equal(t, 2, m.Retry)
 	assert.Equal(t, "Hello LMQ", string(m.Body))
 
 	assert.Nil(t, c.Reply(m, ReplyAck))

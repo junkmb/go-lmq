@@ -123,6 +123,7 @@ func (s *FakeLMQ) writeMessage(w http.ResponseWriter, r *http.Request, m *messag
 	w.Header().Set("X-Lmq-Message-Id", id)
 	w.Header().Set("X-Lmq-Queue-Name", queue)
 	w.Header().Set("X-Lmq-Message-Type", "normal")
+	w.Header().Set("X-Lmq-Retry-Remaining", "2")
 	w.Header().Set("Content-Type", m.ct)
 	w.Write(m.b)
 }

@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"reflect"
+	"strconv"
 
 	"github.com/ugorji/go/codec"
 )
@@ -36,6 +37,7 @@ type Message struct {
 	ID          string
 	Queue       string
 	MessageType string
+	Retry       int
 	ContentType string
 	Body        []byte
 	cm          compoundMessage
@@ -48,13 +50,20 @@ func newMessage(resp *http.Response) (*Message, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Message{
+	m := &Message{
 		ID:          resp.Header.Get("X-Lmq-Message-Id"),
 		Queue:       resp.Header.Get("X-Lmq-Queue-Name"),
 		MessageType: resp.Header.Get("X-Lmq-Message-Type"),
+		Retry:       -1,
 		ContentType: resp.Header.Get("Content-Type"),
 		Body:        b,
-	}, nil
+	}
+	if s := resp.Header.Get("X-Lmq-Retry-Remaining"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil {
+			m.Retry = n
+		}
+	}
+	return m, nil
 }
 
 func (m *Message) Decode(v interface{}) error {
