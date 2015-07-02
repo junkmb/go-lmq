@@ -120,7 +120,7 @@ func TestProperty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, 0, p.Accum)
+	assert.Equal(t, time.Duration(0), p.Accum)
 	assert.Equal(t, 2, p.Retry)
 	assert.Equal(t, 30*time.Second, p.Timeout)
 
@@ -145,7 +145,7 @@ func TestProperty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	assert.Equal(t, 0, p.Accum)
+	assert.Equal(t, time.Duration(0), p.Accum)
 	assert.Equal(t, 2, p.Retry)
 	assert.Equal(t, 30*time.Second, p.Timeout)
 }
@@ -176,13 +176,13 @@ func TestDefaultProperty(t *testing.T) {
 		t.Fatal("Unexpected number of properties")
 	}
 	assert.Equal(t, "^Test", props[0].Pattern)
-	assert.Equal(t, -1, props[0].Property.Accum)
+	assert.Equal(t, time.Duration(-1), props[0].Property.Accum)
 	assert.Equal(t, -1, props[0].Property.Retry)
 	assert.Equal(t, time.Minute, props[0].Property.Timeout)
 	assert.Equal(t, ".*", props[1].Pattern)
-	assert.Equal(t, -1, props[1].Property.Accum)
+	assert.Equal(t, time.Duration(-1), props[1].Property.Accum)
 	assert.Equal(t, 10, props[1].Property.Retry)
-	assert.Equal(t, -1, props[1].Property.Timeout)
+	assert.Equal(t, time.Duration(-1), props[1].Property.Timeout)
 
 	assert.Nil(t, c.DeleteDefaultProperty())
 
